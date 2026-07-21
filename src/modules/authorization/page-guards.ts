@@ -2,9 +2,9 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { AccountRestrictedError, ForbiddenError, OrganizationContextRequiredError, UnauthenticatedError } from "./errors";
 
-export async function guardPage(check: () => Promise<unknown>): Promise<void> {
+export async function guardPage<T>(check: () => Promise<T>): Promise<T> {
   try {
-    await check();
+    return await check();
   } catch (error) {
     if (error instanceof UnauthenticatedError) redirect("/sign-in");
     if (error instanceof AccountRestrictedError) redirect("/account-restricted");
