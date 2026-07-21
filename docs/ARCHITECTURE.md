@@ -1,6 +1,6 @@
 # Architecture
 
-Coast Bookings is a modular monolith built with Next.js App Router, strict TypeScript, PostgreSQL/Supabase, Drizzle ORM and Zod. React components render interfaces; domain modules own pricing, inventory, booking, permission and payment decisions.
+Coast Bookings is a modular monolith built with Next.js App Router, strict TypeScript, PostgreSQL, Drizzle ORM and Zod. Replit PostgreSQL is the default database; Supabase PostgreSQL is an optional drop-in provider. React components render interfaces; domain modules own pricing, inventory, booking, permission and payment decisions.
 
 ## Runtime boundaries
 
@@ -10,10 +10,23 @@ Browser / mobile client
     -> Zod validation and server permission checks
       -> domain services
         -> Drizzle repositories / provider adapters / outbox
-          -> Supabase PostgreSQL, Auth and private/public Storage
+          -> Replit PostgreSQL (default) or Supabase PostgreSQL
+          -> optional Supabase Auth and private/public Storage
 ```
 
 Public marketplace, guest, host, staff and administrator routes are deployed together. The database is the concurrency boundary. Notifications and integration work are inserted into `outbox_events` in the same transaction as business state and consumed asynchronously.
+
+## Provider model
+
+Database, authentication and file storage are independent choices:
+
+| Deployment | Database | Authentication | Files |
+| --- | --- | --- | --- |
+| Recommended Replit | Replit PostgreSQL via injected `DATABASE_URL` | Supabase Auth | Supabase Storage |
+| Supabase alternative | Supabase PostgreSQL transaction pooler | Supabase Auth | Supabase Storage |
+| UI/demo | None | Disabled | Disabled |
+
+`DATABASE_PROVIDER=replit` is the default. Set it to `supabase` and provide `SUPABASE_DATABASE_URL` to move the same Drizzle schema and domain services to Supabase PostgreSQL. When Supabase Auth is paired with Replit PostgreSQL, `/api/auth/profile-sync` verifies the Supabase session server-side and mirrors only the required identity fields into Replit PostgreSQL.
 
 ## Booking invariant
 

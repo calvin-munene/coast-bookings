@@ -1,12 +1,12 @@
 # Coast Bookings
 
-A TypeScript accommodation marketplace, host-management platform, booking engine and group-reservation CRM for Kenya's coast.
+A TypeScript accommodation marketplace, host-management platform, booking engine and group-reservation CRM for Kenya's coast. Replit PostgreSQL is the default database, while Supabase PostgreSQL remains a supported alternative; Supabase Auth and Storage can also be used independently with either database choice.
 
 The repository ships a polished public marketplace, guest/host/staff/admin portal shells, strict domain services, a 50-table PostgreSQL schema, transactional inventory controls, immutable finance/audit records, Supabase RLS, sandbox payment adapters and automated tests.
 
 ## Run locally
 
-Requirements: Node.js 22+, npm and a Supabase project for persistent flows.
+Requirements: Node.js 22+, npm and either Replit PostgreSQL or Supabase PostgreSQL for persistent flows.
 
 ```bash
 cp .env.example .env.local
@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. The public pages and portal demos work without credentials. Database-backed operations require the variables documented in `.env.example`.
+Open `http://localhost:3000`. The public pages and portal demos work without credentials. Database-backed operations require the variables documented in `.env.example`. In Replit, add its PostgreSQL integration and leave `DATABASE_PROVIDER=replit`; Replit supplies `DATABASE_URL` automatically.
 
 ## Validate
 
@@ -33,7 +33,7 @@ npm run db:migrate
 npm run db:seed
 ```
 
-Migrations contain row-level security, immutable ledger/audit triggers, idempotency constraints and the `confirm_paid_booking` PostgreSQL function that locks and reconfirms inventory before changing a booking to `CONFIRMED`.
+Core migrations run on both Replit PostgreSQL and Supabase PostgreSQL. They contain immutable ledger/audit triggers, idempotency constraints and the `confirm_paid_booking` PostgreSQL function that locks and reconfirms inventory before changing a booking to `CONFIRMED`. Supabase-only RLS and Auth triggers are kept separately in `supabase/rls-policies.sql`.
 
 ## Replit deployment
 

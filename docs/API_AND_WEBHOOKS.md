@@ -7,6 +7,7 @@ All request bodies and query strings are validated with Zod. Errors use `{ error
 | Method | Route | Purpose |
 | --- | --- | --- |
 | GET | `/api/health` | Replit health/readiness probe |
+| POST | `/api/auth/profile-sync` | Verify a Supabase session and mirror the identity into the selected PostgreSQL provider |
 | GET | `/api/search` | Validated property search contract |
 | POST | `/api/pricing/quote` | Server-owned KES pricing calculation |
 | POST | `/api/group-enquiries` | Minimal pre-booking group enquiry |

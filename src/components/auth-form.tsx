@@ -18,13 +18,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        const sync = await fetch("/api/auth/profile-sync", { method: "POST" });
+        if (!sync.ok) throw new Error("Signed in, but the application profile could not be synchronised");
         router.push("/guest/dashboard"); router.refresh();
       } else {
         const fullName = String(formData.get("fullName"));
         const accountType = String(formData.get("accountType"));
-        const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, account_type: accountType }, emailRedirectTo: `${window.location.origin}/guest/dashboard` } });
+        const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, account_type: accountType }, emailRedirectTo: `${window.location.origin}/login` } });
         if (error) throw error;
-        setMessage("Check your email to verify your new Coast Bookings account.");
+        if (data.session) await fetch("/api/auth/profile-sync", { method: "POST" });
+        setMessage("Check your email to verify your new Coast Bookings account, then log in.");
       }
     } catch (error) {
       setMessage(error instanceof Error && error.message === "Supabase is not configured" ? "Authentication is in demo mode until Supabase secrets are added in Replit." : error instanceof Error ? error.message : "Authentication failed");

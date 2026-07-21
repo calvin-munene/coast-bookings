@@ -4,10 +4,15 @@ const serverSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   APP_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  DATABASE_PROVIDER: z.enum(["replit", "supabase", "postgres"]).default("replit"),
+  DATABASE_SSL: z.enum(["auto", "require", "disable"]).default("auto"),
+  AUTH_PROVIDER: z.enum(["supabase", "disabled"]).default("supabase"),
+  STORAGE_PROVIDER: z.enum(["supabase", "disabled"]).default("supabase"),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   DATABASE_URL: z.string().min(1).optional(),
+  SUPABASE_DATABASE_URL: z.string().min(1).optional(),
   DIRECT_DATABASE_URL: z.string().min(1).optional(),
   APP_ENCRYPTION_KEY: z.string().min(32).optional(),
   APP_ENCRYPTION_KEY_VERSION: z.string().min(1).default("v1"),
@@ -44,10 +49,28 @@ export function getEnv(): AppEnv {
 }
 
 export function isConfigured(): boolean {
+  return isDatabaseConfigured();
+}
+
+type DatabaseUrlConfig = Pick<AppEnv, "DATABASE_PROVIDER" | "DATABASE_URL" | "SUPABASE_DATABASE_URL">;
+
+export function getDatabaseUrl(env: DatabaseUrlConfig = getEnv()): string {
+  const connectionString = env.DATABASE_PROVIDER === "supabase"
+    ? env.SUPABASE_DATABASE_URL
+    : env.DATABASE_URL;
+  if (!connectionString) {
+    const variable = env.DATABASE_PROVIDER === "supabase" ? "SUPABASE_DATABASE_URL" : "DATABASE_URL";
+    throw new Error(`${variable} is required when DATABASE_PROVIDER=${env.DATABASE_PROVIDER}`);
+  }
+  return connectionString;
+}
+
+export function isDatabaseConfigured(): boolean {
   const env = getEnv();
-  return Boolean(
-    env.NEXT_PUBLIC_SUPABASE_URL &&
-      env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-      env.DATABASE_URL,
-  );
+  return Boolean(env.DATABASE_PROVIDER === "supabase" ? env.SUPABASE_DATABASE_URL : env.DATABASE_URL);
+}
+
+export function isSupabaseAuthConfigured(): boolean {
+  const env = getEnv();
+  return env.AUTH_PROVIDER === "supabase" && Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }

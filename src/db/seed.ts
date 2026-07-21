@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { getDb } from "./client";
+import { getDb } from "./connection";
 import { roles, systemSettings } from "./schema";
 import { permissions, roles as roleCodes, type Permission, type Role } from "@/modules/permissions/service";
 

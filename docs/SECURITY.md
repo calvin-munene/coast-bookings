@@ -3,8 +3,8 @@
 ## Implemented controls
 
 - Strict TypeScript and Zod at HTTP/provider boundaries.
-- Supabase Auth cookie refresh with server-only permission validation.
-- RLS on guest-, host- and staff-facing tables.
+- Optional Supabase Auth cookie refresh with server-only permission validation.
+- Supabase RLS policies when Supabase PostgreSQL is selected; Replit PostgreSQL is never exposed directly to the browser and all access remains behind server permission checks.
 - Separate public and private storage design with signed private access.
 - UUID keys, foreign keys, positive amount/date checks and optimistic version fields.
 - Unique payment, webhook and idempotency references.
@@ -16,7 +16,7 @@
 
 ## Supabase Storage buckets
 
-Create these buckets in the sandbox and again in the separate production project:
+When Supabase Storage is enabled, create these buckets in the sandbox and again in the separate production project:
 
 | Bucket | Public | Access |
 | --- | --- | --- |
@@ -30,6 +30,7 @@ Private objects should use non-guessable paths and signed URLs with short expiry
 ## Before production
 
 - Create a separate Supabase production project and new credentials.
+- Confirm whether production uses Replit PostgreSQL or Supabase PostgreSQL, set `DATABASE_PROVIDER` accordingly, and test backup/restore for that provider.
 - Set staff MFA and a controlled initial super administrator.
 - Replace mock provider flows with merchant-approved live credentials and tested callback verification.
 - Complete penetration, dependency, RLS and disaster-recovery tests.
