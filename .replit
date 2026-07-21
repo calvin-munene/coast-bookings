@@ -5,8 +5,7 @@ modules = ["nodejs-22"]
 channel = "stable-24_05"
 
 [deployment]
-# Replit injects DATABASE_URL from its PostgreSQL integration. To use Supabase
-# PostgreSQL instead, set DATABASE_PROVIDER=supabase and SUPABASE_DATABASE_URL.
+# Replit injects DATABASE_URL from its PostgreSQL integration.
 run = ["sh", "-c", "npm run db:migrate && npm run start -- -p ${PORT:-3000}"]
 deploymentTarget = "autoscale"
 

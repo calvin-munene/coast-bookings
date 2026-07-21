@@ -1,9 +1,8 @@
 import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
 
-const provider = process.env.DATABASE_PROVIDER ?? "replit";
-const databaseUrl = provider === "supabase" ? process.env.SUPABASE_DATABASE_URL : process.env.DATABASE_URL;
-if (!databaseUrl) throw new Error(`${provider === "supabase" ? "SUPABASE_DATABASE_URL" : "DATABASE_URL"} is required for Drizzle commands`);
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error("DATABASE_URL is required for Drizzle commands. Run them from the Replit workspace or provide a development URL.");
 
 export default defineConfig({
   dialect: "postgresql",

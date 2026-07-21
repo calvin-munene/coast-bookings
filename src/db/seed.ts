@@ -1,33 +1,58 @@
 import "dotenv/config";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "./connection";
-import { roles, systemSettings } from "./schema";
-import { permissions, roles as roleCodes, type Permission, type Role } from "@/modules/permissions/service";
+import { permissions as permissionRecords, rolePermissions, roles, systemSettings } from "./schema";
+import {
+  HOST_PERMISSIONS,
+  HOST_ROLE_GRANTS,
+  HOST_ROLES,
+  INTERNAL_PERMISSIONS,
+  INTERNAL_ROLE_GRANTS,
+  INTERNAL_ROLES,
+  type Permission,
+} from "@/modules/authorization/permissions";
 
 const db = getDb();
 
-const grants: Record<Role, readonly Permission[]> = {
-  GUEST: ["property.read", "reservation.read"],
-  HOST: ["property.read", "property.manage", "inventory.manage", "reservation.read", "reservation.manage", "message.manage", "finance.read", "payout.read", "payout_account.manage"],
-  CO_HOST: ["property.read", "inventory.manage", "reservation.read", "reservation.manage", "message.manage", "guest.check_in"],
-  SUPER_ADMIN: permissions,
-  OPERATIONS_MANAGER: ["property.read", "property.manage", "property.verify", "inventory.manage", "reservation.read", "reservation.manage", "message.manage", "support.manage", "audit.read"],
-  RESERVATIONS_OFFICER: ["property.read", "reservation.read", "reservation.manage", "message.manage", "support.manage"],
-  HOST_VERIFICATION_OFFICER: ["property.read", "property.verify", "document.private.read", "audit.read"],
-  FINANCE_OFFICER: ["reservation.read", "finance.read", "payment.record", "refund.approve", "payout.read", "payout.approve", "document.private.read", "audit.read"],
-  CUSTOMER_SUPPORT_OFFICER: ["property.read", "reservation.read", "message.manage", "support.manage"],
-  CONTENT_MODERATOR: ["property.read", "property.manage"],
-  READ_ONLY_AUDITOR: ["property.read", "reservation.read", "finance.read", "payout.read", "audit.read"],
-};
+function permissionDescription(permission: Permission): string {
+  return permission.replaceAll(":", " ").replaceAll("-", " ");
+}
 
-await db.insert(roles).values(roleCodes.map((code) => ({ code, name: code.replaceAll("_", " "), permissions: [...grants[code]] }))).onConflictDoNothing();
-await db.insert(systemSettings).values([
-  { key: "booking.request_to_book.host_response_minutes", value: 720 },
-  { key: "booking.request_to_book.payment_minutes", value: 120 },
-  { key: "booking.instant.hold_minutes", value: 15 },
-  { key: "payout.eligibility_hours_after_check_in", value: 24 },
-  { key: "payout.automation_enabled", value: false },
-  { key: "marketplace.currency", value: "KES" },
-  { key: "marketplace.indexing_enabled", value: false },
-]).onConflictDoNothing();
+await db.transaction(async (tx) => {
+  await tx.insert(permissionRecords).values(
+    [...INTERNAL_PERMISSIONS, ...HOST_PERMISSIONS].map((code) => ({ code, description: permissionDescription(code) })),
+  ).onConflictDoNothing();
 
-console.log("Seeded Coast Bookings roles and sandbox settings.");
+  await tx.insert(roles).values([
+    ...INTERNAL_ROLES.map((code) => ({ code, scope: "INTERNAL" as const, name: code.replace("org:", "").replaceAll("_", " "), permissions: [...INTERNAL_ROLE_GRANTS[code]] })),
+    ...HOST_ROLES.map((code) => ({ code, scope: "HOST" as const, name: code.replace("org:", "").replaceAll("_", " "), permissions: [...HOST_ROLE_GRANTS[code]] })),
+  ]).onConflictDoNothing();
+
+  const savedPermissions = await tx.select().from(permissionRecords);
+  const savedRoles = await tx.select().from(roles);
+  const permissionId = new Map(savedPermissions.map((permission) => [permission.code, permission.id]));
+
+  for (const role of savedRoles) {
+    const grants = role.scope === "INTERNAL"
+      ? INTERNAL_ROLE_GRANTS[role.code as keyof typeof INTERNAL_ROLE_GRANTS]
+      : HOST_ROLE_GRANTS[role.code as keyof typeof HOST_ROLE_GRANTS];
+    if (!grants) continue;
+    await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, role.id));
+    await tx.insert(rolePermissions).values(grants.map((code) => ({ roleId: role.id, permissionId: permissionId.get(code)! })));
+  }
+
+  await tx.insert(systemSettings).values([
+    { key: "booking.request_to_book.host_response_minutes", value: 720 },
+    { key: "booking.request_to_book.payment_minutes", value: 120 },
+    { key: "booking.instant.hold_minutes", value: 15 },
+    { key: "payout.eligibility_hours_after_check_in", value: 24 },
+    { key: "payout.automation_enabled", value: false },
+    { key: "marketplace.currency", value: "KES" },
+    { key: "marketplace.indexing_enabled", value: false },
+  ]).onConflictDoNothing();
+
+  // Keep imports used when Drizzle narrows transaction types differently across minor versions.
+  void and;
+});
+
+console.log("Seeded Coast Bookings permissions, scoped roles, and Replit defaults.");

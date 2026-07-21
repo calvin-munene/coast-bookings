@@ -1,5 +1,4 @@
--- Provider-neutral PostgreSQL invariants used by both Replit PostgreSQL and Supabase.
--- Supabase-only Auth foreign keys and RLS policies live in supabase/rls-policies.sql.
+-- Replit PostgreSQL invariants for immutable records and transactional booking confirmation.
 
 create or replace function public.prevent_mutation()
 returns trigger language plpgsql as $$

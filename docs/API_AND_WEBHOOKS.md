@@ -1,42 +1,30 @@
 # API and webhooks
 
-All request bodies and query strings are validated with Zod. Errors use `{ error, message, details? }`. Persistent mutation endpoints require authenticated sessions, server permission checks and an `Idempotency-Key` between 8 and 128 characters.
+All JSON inputs cross a Zod boundary. Protected handlers call a centralized server authorization guard before querying data. API responses use explicit DTOs for public, guest, host, and internal audiences.
 
-## Included endpoints
+## Public endpoints
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| GET | `/api/health` | Replit health/readiness probe |
-| POST | `/api/auth/profile-sync` | Verify a Supabase session and mirror the identity into the selected PostgreSQL provider |
-| GET | `/api/search` | Validated property search contract |
-| POST | `/api/pricing/quote` | Server-owned KES pricing calculation |
-| POST | `/api/group-enquiries` | Minimal pre-booking group enquiry |
-| POST | `/api/webhooks/daraja` | Daraja callback ingress |
-| POST | `/api/webhooks/pesapal` | Pesapal IPN ingress |
+| GET | `/api/health` | Configuration-safe health status |
+| GET | `/api/search` | Published property search |
+| POST | `/api/pricing/quote` | Server-side price quote |
+| POST | `/api/group-enquiries` | Validated group enquiry intake |
 
-Public demo routes return `meta.sandbox: true` where no database mutation occurs.
+## Clerk webhook
 
-## Payment callback sequence
+`POST /api/webhooks/clerk` uses Clerk's official verification helper. The raw body is size-limited and hashed. `webhook-id` is required and uniquely stored with provider `CLERK` before any projection changes.
 
-1. Read the raw request body once.
-2. Enforce a maximum body size.
-3. Verify the provider's signature/token against the raw bytes and production callback URL.
-4. Extract a stable provider event ID and transaction reference.
-5. Insert `webhook_events`/`payment_events` under unique `(provider, provider_event_id)` constraints. A conflict is an acknowledged duplicate.
-6. Verify the transaction directly with the provider where supported.
-7. Confirm exact currency and paid amount. Record over/underpayments for reconciliation rather than silently changing totals.
-8. Mark the payment succeeded, create balanced ledger entries and call `confirm_paid_booking` in one database transaction.
-9. Acknowledge promptly; deliver receipts and notifications from the outbox.
+Handled event families are user, organization, and organization-membership created/updated/deleted. User events synchronize email-verification and MFA state. Membership events are accepted only for recognized roles; internal roles also require the exact configured internal organization. Duplicate events return success without repeating writes.
 
-Never confirm from a checkout redirect, client-provided status, telephone SMS or screenshot. Manual payments require a staff record, evidence, a second verification step and an audit entry.
+## Payment webhooks
 
-## Provider callback URLs
+`POST /api/webhooks/daraja` and `/api/webhooks/pesapal` accept only stable provider event IDs. Production adapters must verify provider signatures before inserting immutable `payment_events`. A browser redirect never changes payment or booking status.
 
-For the future custom domain:
+After signature and amount verification, the database `confirm_paid_booking` function locks the booking, payment, inventory hold, and daily stock; rechecks availability; converts held inventory; confirms the booking; and writes an outbox notification in one transaction.
 
-```text
-https://app.coastbookings.org/api/webhooks/daraja
-https://app.coastbookings.org/api/webhooks/pesapal
-```
+## Private files
 
-Use the Replit deployment URL in sandbox first, then register new production callback/IPN endpoints when the custom domain and live merchant credentials are ready.
+`GET /api/files/access/[token]` requires an active Clerk session and a one-time, short-lived, audience-bound token. It streams bytes from Replit App Storage with `private, no-store` caching. Upload services validate MIME, size, ownership scope, randomized keys, and checksums.
+
+Error responses avoid exposing whether another tenant's resource exists. Provider bodies, credentials, private document paths, and internal fields are never logged or returned to public clients.

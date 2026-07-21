@@ -15,6 +15,20 @@
       "when": 1784632374461,
       "tag": "0001_invariants_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784650444671,
+      "tag": "0002_clerk_replit_platform",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784651786507,
+      "tag": "0003_isolate_internal_fields",
+      "breakpoints": true
     }
   ]
 }

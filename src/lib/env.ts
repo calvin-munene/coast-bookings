@@ -4,16 +4,16 @@ const serverSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   APP_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
-  DATABASE_PROVIDER: z.enum(["replit", "supabase", "postgres"]).default("replit"),
-  DATABASE_SSL: z.enum(["auto", "require", "disable"]).default("auto"),
-  AUTH_PROVIDER: z.enum(["supabase", "disabled"]).default("supabase"),
-  STORAGE_PROVIDER: z.enum(["supabase", "disabled"]).default("supabase"),
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  NEXT_PUBLIC_ACCOUNT_URL: z.string().url().optional(),
+  NEXT_PUBLIC_OPERATIONS_URL: z.string().url().optional(),
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1).optional(),
+  CLERK_SECRET_KEY: z.string().min(1).optional(),
+  CLERK_WEBHOOK_SIGNING_SECRET: z.string().min(1).optional(),
+  CLERK_INTERNAL_ORGANIZATION_ID: z.string().min(1).optional(),
   DATABASE_URL: z.string().min(1).optional(),
-  SUPABASE_DATABASE_URL: z.string().min(1).optional(),
-  DIRECT_DATABASE_URL: z.string().min(1).optional(),
+  REPLIT_PUBLIC_IMAGES_BUCKET_ID: z.string().min(1).optional(),
+  REPLIT_PRIVATE_DOCUMENTS_BUCKET_ID: z.string().min(1).optional(),
+  REPLIT_SUPPORT_ATTACHMENTS_BUCKET_ID: z.string().min(1).optional(),
   APP_ENCRYPTION_KEY: z.string().min(32).optional(),
   APP_ENCRYPTION_KEY_VERSION: z.string().min(1).default("v1"),
   INITIAL_SUPER_ADMIN_EMAIL: z.string().email().optional(),
@@ -44,33 +44,24 @@ export type AppEnv = z.infer<typeof serverSchema>;
 let cached: AppEnv | undefined;
 
 export function getEnv(): AppEnv {
-  if (!cached) cached = serverSchema.parse(process.env);
+  cached ??= serverSchema.parse(process.env);
   return cached;
 }
 
-export function isConfigured(): boolean {
-  return isDatabaseConfigured();
-}
-
-type DatabaseUrlConfig = Pick<AppEnv, "DATABASE_PROVIDER" | "DATABASE_URL" | "SUPABASE_DATABASE_URL">;
-
-export function getDatabaseUrl(env: DatabaseUrlConfig = getEnv()): string {
-  const connectionString = env.DATABASE_PROVIDER === "supabase"
-    ? env.SUPABASE_DATABASE_URL
-    : env.DATABASE_URL;
-  if (!connectionString) {
-    const variable = env.DATABASE_PROVIDER === "supabase" ? "SUPABASE_DATABASE_URL" : "DATABASE_URL";
-    throw new Error(`${variable} is required when DATABASE_PROVIDER=${env.DATABASE_PROVIDER}`);
-  }
-  return connectionString;
+export function getDatabaseUrl(env: Pick<AppEnv, "DATABASE_URL"> = getEnv()): string {
+  if (!env.DATABASE_URL) throw new Error("DATABASE_URL is required. Add a PostgreSQL database to the Replit App.");
+  return env.DATABASE_URL;
 }
 
 export function isDatabaseConfigured(): boolean {
-  const env = getEnv();
-  return Boolean(env.DATABASE_PROVIDER === "supabase" ? env.SUPABASE_DATABASE_URL : env.DATABASE_URL);
+  return Boolean(getEnv().DATABASE_URL);
 }
 
-export function isSupabaseAuthConfigured(): boolean {
+export function isClerkConfigured(): boolean {
   const env = getEnv();
-  return env.AUTH_PROVIDER === "supabase" && Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  return Boolean(env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && env.CLERK_SECRET_KEY);
+}
+
+export function isConfigured(): boolean {
+  return isDatabaseConfigured() && isClerkConfigured();
 }
