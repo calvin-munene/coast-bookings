@@ -1,0 +1,3 @@
+import { PropertyCard } from "@/components/property-card";
+import { properties } from "@/data/demo";
+export default async function DestinationPage({ params }: { params: Promise<{ destinationSlug: string }> }) { const { destinationSlug } = await params; const name = destinationSlug[0]?.toUpperCase() + destinationSlug.slice(1); return <><section className="page-hero"><div className="shell"><span className="section-kicker">Destination guide</span><h1>Stay in {name}.</h1><p>Verified guest houses, hotels, villas and group-friendly properties.</p></div></section><section className="section shell"><div className="property-grid">{properties.slice(0,3).map(p => <PropertyCard key={p.slug} property={p} />)}</div></section></>; }
