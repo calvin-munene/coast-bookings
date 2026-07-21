@@ -44,6 +44,7 @@ export const notificationStatusEnum = pgEnum("notification_status", ["PENDING", 
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey(),
   email: text("email").notNull(),
+  passwordHash: text("password_hash"),
   fullName: text("full_name").notNull(),
   phone: text("phone"),
   nationality: text("nationality"),

@@ -4,11 +4,8 @@ const serverSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   APP_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SESSION_SECRET: z.string().min(16).optional(),
   DATABASE_URL: z.string().min(1).optional(),
-  DIRECT_DATABASE_URL: z.string().min(1).optional(),
   APP_ENCRYPTION_KEY: z.string().min(32).optional(),
   APP_ENCRYPTION_KEY_VERSION: z.string().min(1).default("v1"),
   INITIAL_SUPER_ADMIN_EMAIL: z.string().email().optional(),
@@ -45,9 +42,5 @@ export function getEnv(): AppEnv {
 
 export function isConfigured(): boolean {
   const env = getEnv();
-  return Boolean(
-    env.NEXT_PUBLIC_SUPABASE_URL &&
-      env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-      env.DATABASE_URL,
-  );
+  return Boolean(env.DATABASE_URL);
 }

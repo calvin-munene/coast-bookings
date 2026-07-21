@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
       "font-src 'self' data:",
       `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
       "style-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://*.supabase.co https://*.sentry.io",
+      "connect-src 'self' https://*.sentry.io",
       "upgrade-insecure-requests",
     ].join("; ");
     return [{ source: "/(.*)", headers: [
