@@ -1,10 +1,4 @@
--- Coast Bookings database invariants.
--- Keeps financial/audit records append-only and performs booking confirmation
--- under row locks inside PostgreSQL. Supabase auth/RLS removed — authorization
--- is handled in the application layer via iron-session and the permissions service.
-
--- Add password_hash column for local authentication
-alter table profiles add column if not exists password_hash text;
+-- Replit PostgreSQL invariants for immutable records and transactional booking confirmation.
 
 -- Immutable financial / audit records
 create or replace function public.prevent_mutation()
@@ -23,7 +17,6 @@ for each row execute function public.prevent_mutation();
 create trigger audit_logs_immutable before update or delete on audit_logs
 for each row execute function public.prevent_mutation();
 
--- Transactional booking confirmation with inventory locking
 create or replace function public.confirm_paid_booking(
   target_booking_id uuid,
   target_payment_id uuid,
@@ -90,3 +83,5 @@ begin
   values ('notifications', 'BOOKING_CONFIRMED', 'booking', target_booking_id, jsonb_build_object('bookingId', target_booking_id));
 end;
 $$;
+
+revoke all on function public.confirm_paid_booking(uuid, uuid, text) from public;

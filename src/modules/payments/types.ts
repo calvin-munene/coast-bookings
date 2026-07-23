@@ -1,7 +1,7 @@
 import type { MoneyDto } from "@/modules/shared/money";
 
-export type PaymentMethod = "MPESA_STK" | "CARD" | "BANK_TRANSFER" | "MANUAL_MPESA" | "OFFLINE";
-export type PaymentStatus = "PENDING" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
+export type PaymentMethod = "WHOP_CHECKOUT" | "CARD" | "MPESA" | "BANK_TRANSFER" | "MANUAL_MPESA" | "OFFLINE";
+export type PaymentStatus = "PENDING" | "PROCESSING" | "PARTIALLY_PAID" | "SUCCEEDED" | "FAILED" | "DISPUTED" | "REFUNDED" | "PARTIALLY_REFUNDED";
 
 export type PaymentRequest = Readonly<{
   bookingId: string;
@@ -12,13 +12,16 @@ export type PaymentRequest = Readonly<{
   customerPhone?: string;
   idempotencyKey: string;
   callbackUrl: string;
+  metadata?: Readonly<Record<string, string>>;
 }>;
 
 export type PaymentInitiation = Readonly<{
-  provider: "DARAJA" | "PESAPAL" | "MANUAL";
+  provider: "WHOP" | "MANUAL";
   providerReference: string;
   status: "PENDING" | "REQUIRES_ACTION";
   redirectUrl?: string;
+  checkoutSessionId?: string;
+  planId?: string;
   customerMessage?: string;
 }>;
 

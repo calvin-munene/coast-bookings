@@ -1,39 +1,24 @@
 # Architecture
 
-Coast Bookings is a modular monolith built with Next.js App Router, strict TypeScript, PostgreSQL/Supabase, Drizzle ORM and Zod. React components render interfaces; domain modules own pricing, inventory, booking, permission and payment decisions.
-
-## Runtime boundaries
+Coast Bookings is a modular Next.js App Router monolith written in strict TypeScript. Replit runs the application and supplies PostgreSQL, App Storage, secrets, development workflows, and production publishing. Clerk supplies identity and organization sessions.
 
 ```text
-Browser / mobile client
-  -> Next.js pages and route handlers
-    -> Zod validation and server permission checks
-      -> domain services
-        -> Drizzle repositories / provider adapters / outbox
-          -> Supabase PostgreSQL, Auth and private/public Storage
+Browser
+  -> public marketplace or protected workspace
+  -> Next.js proxy (public allowlist; authentication everywhere else)
+  -> server route, action, or component
+  -> centralized authorization guard
+  -> Zod trust-boundary validation
+  -> domain service
+  -> tenant-scoped Drizzle repository
+  -> Replit PostgreSQL transaction
+  -> outbox/background integration adapter
 ```
 
-Public marketplace, guest, host, staff and administrator routes are deployed together. The database is the concurrency boundary. Notifications and integration work are inserted into `outbox_events` in the same transaction as business state and consumed asynchronously.
+Application modules live under `src/modules`. Business decisions remain outside React. The current route tree separates public, guest, host, staff, and administrator surfaces while a host-aware route policy supports separate public/account/operations domains when configured.
 
-## Booking invariant
+PostgreSQL uses public tables for marketplace records, `internal` tables for finance/risk/staff-only models, and `audit` tables for security events. UUID keys, UTC timestamps, minor-unit money, foreign keys, checks, immutable finance history, and optimistic versions are used throughout.
 
-1. Search displays calculated availability.
-2. Checkout creates an expiring inventory hold; instant holds last 15 minutes.
-3. Request-to-book holds allow 12 hours for the host and 2 hours for guest payment after acceptance.
-4. Provider callbacks are signature-checked and inserted under a unique provider event ID.
-5. `confirm_paid_booking` locks the booking, payment, hold and each inventory day.
-6. PostgreSQL rechecks capacity and converts `held` to `sold` atomically.
-7. The booking becomes confirmed and a notification outbox event is recorded.
+Clerk membership is necessary but not sufficient authorization. The application also validates synchronized user status, organization approval, membership expiry, MFA, typed role grants, and resource ownership. Replit PostgreSQL remains the system of record for marketplace state and tenant scope.
 
-Shared inventory pools allow room types that consume the same underlying stock. The check constraint `held + sold <= capacity` is the last database-level defence against overselling.
-
-## Financial model
-
-All money is integer minor units and the first release uses KES only. `pricing_snapshots` and `booking_price_items` freeze guest totals, tax, commission and host earnings. The ledger is double-entry and immutable; corrections use reversing journals. Payouts remain manual, require approval and become eligible 24 hours after check-in unless held by a dispute.
-
-## Extensions
-
-- Payment providers implement the shared provider interface. Daraja, Pesapal and manual adapters are present.
-- Notification adapters target Resend, Meta WhatsApp and Africa's Talking through the outbox.
-- `ical_connections` supports import/export now and leaves a boundary for channel-manager adapters.
-- Route handlers return mobile-friendly JSON so first-party apps can reuse business services later.
+The monolith can later split operations and marketplace deployments without changing the domain boundaries. Until scale demands it, one application keeps booking transactions and operational maintenance simpler.

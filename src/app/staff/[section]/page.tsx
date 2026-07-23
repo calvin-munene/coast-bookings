@@ -1,0 +1,10 @@
+import { notFound } from "next/navigation";
+import { OperationsWorkspace, OPERATIONS_SECTIONS } from "@/components/internal/operations-workspace";
+import { guardPage } from "@/modules/authorization/page-guards";
+import { requireInternalPermission } from "@/modules/authorization/service";
+import type { InternalPermission } from "@/modules/authorization/permissions";
+import { operationsWorkspaceSummary } from "@/modules/workspaces/repository";
+import { operationsSectionData } from "@/modules/workspaces/section-repository";
+import { StaffSectionActions } from "@/components/internal/staff-actions";
+const sectionPermissions: Readonly<Record<string, InternalPermission>> = { dashboard: "internal:dashboard:view", crm: "internal:enquiries:view", "group-enquiries": "internal:enquiries:view", "property-sourcing": "internal:enquiries:manage", quotations: "internal:quotes:create", bookings: "internal:bookings:view", "manual-bookings": "internal:bookings:manage", "host-onboarding": "internal:hosts:verify", "property-verification": "internal:properties:approve", availability: "internal:bookings:view", payments: "internal:payments:view", refunds: "internal:refunds:request", payouts: "internal:payouts:view", commission: "internal:reports:view", "supplier-balances": "internal:reports:view", support: "internal:support:manage", disputes: "internal:support:manage", incidents: "internal:support:manage", tasks: "internal:dashboard:view", documents: "internal:dashboard:view", communications: "internal:support:manage", reports: "internal:reports:view", audit: "internal:audit:view" };
+export default async function StaffSectionPage({ params }: Readonly<{ params: Promise<{ section: string }> }>) { const { section } = await params; if (!OPERATIONS_SECTIONS.some((item) => item.slug === section)) notFound(); await guardPage(() => requireInternalPermission(sectionPermissions[section] ?? "internal:dashboard:view")); const [summary, data] = await Promise.all([operationsWorkspaceSummary(), operationsSectionData(section)]); return <OperationsWorkspace section={section} summary={summary} data={data} actions={<StaffSectionActions section={section} />} />; }

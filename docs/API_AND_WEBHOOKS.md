@@ -1,41 +1,52 @@
 # API and webhooks
 
-All request bodies and query strings are validated with Zod. Errors use `{ error, message, details? }`. Persistent mutation endpoints require authenticated sessions, server permission checks and an `Idempotency-Key` between 8 and 128 characters.
+Every request crosses a Zod validation boundary. Protected handlers resolve the Clerk session, the synchronized Replit PostgreSQL user, role permissions, organization membership, and resource ownership before accessing data. Error responses use stable codes and do not disclose another tenant's records.
 
-## Included endpoints
+## Public routes
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| GET | `/api/health` | Replit health/readiness probe |
-| GET | `/api/search` | Validated property search contract |
-| POST | `/api/pricing/quote` | Server-owned KES pricing calculation |
-| POST | `/api/group-enquiries` | Minimal pre-booking group enquiry |
-| POST | `/api/webhooks/daraja` | Daraja callback ingress |
-| POST | `/api/webhooks/pesapal` | Pesapal IPN ingress |
+| GET | `/api/health` | Non-secret runtime readiness |
+| GET | `/api/search` | Search verified, published inventory |
+| POST | `/api/pricing/quote` | Pure server-side pricing calculation |
+| POST | `/api/bookings/quote` | Live unit, inventory, restriction, promotion and total quote |
+| POST | `/api/group-enquiries` | Rate-limited detailed group enquiry |
+| GET | `/api/files/public/[fileId]` | Approved public property image |
 
-Public demo routes return `meta.sandbox: true` where no database mutation occurs.
+## Authenticated routes
 
-## Payment callback sequence
+| Method | Route | Purpose |
+| --- | --- | --- |
+| POST | `/api/bookings` | Create an idempotent inventory hold and booking |
+| POST | `/api/payments/checkout` | Create or reuse a Whop checkout session |
+| GET | `/api/payments/[paymentId]` | Read the current server-verified payment state |
+| POST/DELETE | `/api/favourites` | Save or remove a published property |
+| GET | `/api/files/access/[token]` | Consume a short-lived private-file token |
 
-1. Read the raw request body once.
-2. Enforce a maximum body size.
-3. Verify the provider's signature/token against the raw bytes and production callback URL.
-4. Extract a stable provider event ID and transaction reference.
-5. Insert `webhook_events`/`payment_events` under unique `(provider, provider_event_id)` constraints. A conflict is an acknowledged duplicate.
-6. Verify the transaction directly with the provider where supported.
-7. Confirm exact currency and paid amount. Record over/underpayments for reconciliation rather than silently changing totals.
-8. Mark the payment succeeded, create balanced ledger entries and call `confirm_paid_booking` in one database transaction.
-9. Acknowledge promptly; deliver receipts and notifications from the outbox.
+Server actions provide the role-specific host, guest, staff and administrator mutations. They apply the same authorization, validation, transaction and audit rules as route handlers.
 
-Never confirm from a checkout redirect, client-provided status, telephone SMS or screenshot. Manual payments require a staff record, evidence, a second verification step and an audit entry.
+## Clerk webhook
 
-## Provider callback URLs
+`POST /api/webhooks/clerk` verifies Clerk's signed raw request. User, organization and membership events synchronize local identity projections. Internal roles are accepted only for the configured Coast Bookings internal organization. `(provider, event ID)` is unique, so retries cannot duplicate a projection.
 
-For the future custom domain:
+## Whop webhook
+
+Configure Whop to send payment events to:
 
 ```text
-https://app.coastbookings.org/api/webhooks/daraja
-https://app.coastbookings.org/api/webhooks/pesapal
+POST https://YOUR-REPLIT-DOMAIN/api/webhooks/whop
 ```
 
-Use the Replit deployment URL in sandbox first, then register new production callback/IPN endpoints when the custom domain and live merchant credentials are ready.
+The handler requires and verifies the Standard Webhooks ID, timestamp and signature headers with `WHOP_WEBHOOK_SECRET`. It then verifies the payment with the Whop API, company, KES amount, metadata, checkout session and inventory hold. Event IDs, payload hashes, provider transaction IDs and ledger journals are unique.
+
+Only the verified callback can invoke `confirm_paid_booking`. That PostgreSQL function locks the booking and inventory rows, rechecks the hold, converts held stock to sold stock, writes status history and queues confirmation inside one transaction. A checkout completion callback, browser redirect or status-page refresh never marks a booking paid.
+
+Deposits confirm inventory and leave the booking `PARTIALLY_PAID`; later Whop sessions collect the next schedule. Refunds are staff-approved, processed asynchronously with a stable idempotency key, entered in the double-entry ledger and placed against host payout eligibility.
+
+## Scheduled jobs
+
+`POST /api/jobs/run` requires `Authorization: Bearer <CRON_SHARED_SECRET>`. It expires holds and quotations, publishes eligible double-blind reviews, creates eligible payouts, queues payment reminders, detects stalled checkouts and drains the retrying outbox. Never expose this route without the shared secret.
+
+## Private files
+
+Private host, booking, support and dispute files remain in private Replit App Storage buckets. Access uses audience-bound, one-time tokens with expiry and `private, no-store` responses. Upload services enforce MIME allowlists, limits, randomized keys, ownership scope and checksums.

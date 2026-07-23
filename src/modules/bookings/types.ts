@@ -16,6 +16,7 @@ export const bookingStatuses = [
   "DISPUTED",
   "REFUNDED",
   "PARTIALLY_REFUNDED",
+  "PAYMENT_REVIEW",
 ] as const;
 
 export type BookingStatus = (typeof bookingStatuses)[number];

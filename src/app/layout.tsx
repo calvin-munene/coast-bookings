@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
+import { ApplicationChrome } from "@/components/application-chrome";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
@@ -9,10 +10,24 @@ export const metadata: Metadata = {
   description: "Book verified stays and managed group accommodation along Kenya's coast.",
   robots: process.env.ALLOW_INDEXING === "true" ? { index: true, follow: true } : { index: false, follow: false },
   openGraph: { title: "Coast Bookings", description: "Stay close to what matters.", images: ["/og-coast-bookings.png"] },
+  applicationName: "Coast Bookings",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/coastbookings-logo.svg", apple: "/coastbookings-logo.svg" },
 };
 
 export const viewport: Viewport = { themeColor: "#08233e", colorScheme: "light" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><SiteHeader /><main>{children}</main><SiteFooter /></body></html>;
+  const page = <html lang="en"><body><ApplicationChrome>{children}</ApplicationChrome><ServiceWorkerRegister /></body></html>;
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) return page;
+  return (
+    <ClerkProvider
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      signInFallbackRedirectUrl="/auth/continue"
+      signUpFallbackRedirectUrl="/onboarding"
+    >
+      {page}
+    </ClerkProvider>
+  );
 }
