@@ -9,6 +9,7 @@ const connectionString = getDatabaseUrl();
 const client = postgres(connectionString, { max: 1 });
 try {
   await migrate(drizzle(client), { migrationsFolder: "./drizzle" });
+  console.log("Migrations complete.");
 } finally {
   await client.end();
 }

@@ -1,0 +1,2 @@
+- [Supabase-to-Replit migration](supabase-to-replit.md) — auth replaced with iron-session; DB uses PG* env var fallback because DATABASE_URL secret conflicts.
+- [ESM top-level await fix](esm-tsx-fix.md) — tsx treats .ts as CJS; fix by adding {"type":"module"} package.json in the script's directory.

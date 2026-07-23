@@ -1,5 +1,6 @@
 -- Replit PostgreSQL invariants for immutable records and transactional booking confirmation.
 
+-- Immutable financial / audit records
 create or replace function public.prevent_mutation()
 returns trigger language plpgsql as $$
 begin
