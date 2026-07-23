@@ -1,20 +1,23 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fail } from "@/lib/api";
-import { sha256 } from "@/modules/payments/crypto";
+import { processWhopWebhook } from "@/modules/payments/whop-webhook-service";
 
-const providerSchema = z.enum(["daraja", "pesapal"]);
+const providerSchema = z.literal("whop");
 
-export async function POST(request: Request, { params }: { params: Promise<{ provider: string }> }) {
-  const { provider: rawProvider } = await params;
-  const provider = providerSchema.safeParse(rawProvider);
-  if (!provider.success) return fail("UNKNOWN_PROVIDER", "Unsupported payment provider", 404);
+export async function POST(request: Request, { params }: Readonly<{ params: Promise<{ provider: string }> }>) {
+  const provider = providerSchema.safeParse((await params).provider);
+  if (!provider.success) return fail("UNKNOWN_PROVIDER", "Only Whop accepts online payment webhooks", 404);
   const rawBody = await request.text();
+  if (rawBody.length === 0) return fail("EMPTY_WEBHOOK", "Webhook body is required", 400);
   if (rawBody.length > 1_000_000) return fail("PAYLOAD_TOO_LARGE", "Webhook body is too large", 413);
-  const eventId = request.headers.get("x-provider-event-id") ?? request.headers.get("x-request-id");
-  if (!eventId) return fail("MISSING_EVENT_ID", "A stable provider event ID is required", 400);
-
-  // Production processing first verifies the provider signature, then inserts the
-  // unique (provider,event_id) before any ledger or booking state mutation.
-  return NextResponse.json({ received: true, provider: provider.data, eventId, payloadHash: await sha256(rawBody), paymentStateChanged: false });
+  if (!request.headers.get("webhook-id") || !request.headers.get("webhook-signature") || !request.headers.get("webhook-timestamp")) return fail("MISSING_SIGNATURE", "Whop signature headers are required", 400);
+  try {
+    const result = await processWhopWebhook(rawBody, request.headers);
+    return NextResponse.json({ received: true, ...result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Whop webhook failed validation";
+    const signatureFailure = /signature|timestamp|webhook|company/i.test(message);
+    return fail(signatureFailure ? "INVALID_WEBHOOK" : "WEBHOOK_PROCESSING_FAILED", message, signatureFailure ? 401 : 500);
+  }
 }

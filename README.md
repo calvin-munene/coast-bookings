@@ -9,7 +9,8 @@ The production architecture is deliberately clear:
 - Replit App Storage stores public images and private documents.
 - Replit Secrets holds every server credential.
 - Clerk provides identity, sessions, MFA, organizations, invitations, and verified webhooks.
-- Payment and communication providers are connected through server-only adapters.
+- Whop provides embedded online checkout; verified callbacks, never browser redirects, confirm payment.
+- Communication providers and Sentry are connected through server-only or privacy-safe adapters.
 
 ## Run
 
@@ -21,7 +22,7 @@ npm install
 npm run dev
 ```
 
-Public marketplace pages work before Clerk and the database are configured. Protected routes deny access and redirect to `/sign-in`; they are never exposed as demo dashboards.
+The health and authentication shells work before the database is configured. Live marketplace inventory and every protected workspace use Replit PostgreSQL; protected routes deny access and redirect to `/sign-in` rather than exposing demo dashboards.
 
 ## Database
 
@@ -56,8 +57,9 @@ npm run test:e2e
 - [Testing](docs/testing.md)
 - [Operations portal](docs/operations-portal.md)
 - [API and webhooks](docs/API_AND_WEBHOOKS.md)
+- [Whop payments](docs/WHOP_PAYMENTS.md)
 - [Implementation report](docs/implementation-report.md)
 
 ## Payment safety
 
-Payment mode defaults to mock/sandbox. Browser redirects never mark a booking paid. Only a verified, idempotently recorded provider callback can enter the database confirmation function that locks inventory and completes the booking transaction.
+Payment mode defaults to Whop sandbox. Browser redirects never mark a booking paid. Only a verified, idempotently recorded Whop callback can enter the database confirmation function that locks inventory and completes the booking transaction.

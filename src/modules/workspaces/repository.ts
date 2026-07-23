@@ -1,7 +1,7 @@
 import "server-only";
 import { and, count, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { getDb } from "@/db/connection";
-import { bookings, groupEnquiries, hostOrganizations, payments, payouts, pricingSnapshots, supportTickets } from "@/db/schema";
+import { bookings, groupEnquiries, hostOrganizations, organizationMemberships, payments, payouts, pricingSnapshots, securityEvents, supportTickets, users } from "@/db/schema";
 
 export type WorkspaceSummary = readonly { label: string; value: string }[];
 function money(minor: string | number | bigint | null): string { return `KES ${(Number(minor ?? 0) / 100).toLocaleString("en-KE", { maximumFractionDigits: 0 })}`; }
@@ -35,4 +35,14 @@ export async function operationsWorkspaceSummary(): Promise<WorkspaceSummary> {
     getDb().select({ value: count() }).from(supportTickets).where(and(inArray(supportTickets.category, ["Safety concern", "Fraud report", "Property damage"]), ne(supportTickets.status, "CLOSED"))),
   ]);
   return [{ label: "New enquiries", value: String(enquiries?.value ?? 0) }, { label: "Payment exceptions", value: String(paymentExceptions?.value ?? 0) }, { label: "Host approvals", value: String(hostApprovals?.value ?? 0) }, { label: "Open incidents", value: String(openIncidents?.value ?? 0) }];
+}
+
+export async function adminWorkspaceSummary(): Promise<WorkspaceSummary> {
+  const [[restricted], [security], [pendingMemberships], [usersTotal]] = await Promise.all([
+    getDb().select({ value: count() }).from(users).where(inArray(users.status, ["RESTRICTED", "SUSPENDED"])),
+    getDb().select({ value: count() }).from(securityEvents).where(eq(securityEvents.outcome, "DENIED")),
+    getDb().select({ value: count() }).from(organizationMemberships).where(eq(organizationMemberships.status, "PENDING")),
+    getDb().select({ value: count() }).from(users),
+  ]);
+  return [{ label: "Restricted accounts", value: String(restricted?.value ?? 0) }, { label: "Denied security events", value: String(security?.value ?? 0) }, { label: "Pending role changes", value: String(pendingMemberships?.value ?? 0) }, { label: "Platform users", value: String(usersTotal?.value ?? 0) }];
 }

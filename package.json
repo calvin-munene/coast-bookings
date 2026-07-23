@@ -17,18 +17,22 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
+    "jobs:run": "node scripts/run-jobs.mjs",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.21",
     "@hookform/resolvers": "^5.4.0",
     "@replit/object-storage": "^1.0.0",
+    "@sentry/nextjs": "^10.67.0",
+    "@whop/checkout": "^0.4.0",
+    "@whop/sdk": "^0.0.42",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.25.0",
     "nanoid": "^6.0.0",
-    "next": "16.2.10",
+    "next": "16.2.11",
     "postgres": "^3.4.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -47,10 +51,14 @@
     "dotenv": "^17.3.1",
     "drizzle-kit": "^0.31.9",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.2.11",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.0.18"
+  },
+  "overrides": {
+    "postcss": "8.5.22",
+    "sharp": "0.35.3"
   }
 }

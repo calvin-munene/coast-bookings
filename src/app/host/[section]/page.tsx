@@ -4,6 +4,8 @@ import { guardPage } from "@/modules/authorization/page-guards";
 import { requireHostPermission } from "@/modules/authorization/service";
 import type { HostPermission } from "@/modules/authorization/permissions";
 import { hostWorkspaceSummary } from "@/modules/workspaces/repository";
+import { hostSectionData } from "@/modules/workspaces/section-repository";
+import { HostSectionActions } from "@/components/workspaces/host-actions";
 
 const permissionBySection = {
   dashboard: "host:property:view",
@@ -28,5 +30,6 @@ export default async function HostSectionPage({ params }: Readonly<{ params: Pro
   const { section } = await params;
   if (!HOST_SECTIONS.some((item) => item.slug === section)) notFound();
   const context = await guardPage(() => requireHostPermission(permissionBySection[section as keyof typeof permissionBySection]));
-  return <HostWorkspace section={section} summary={await hostWorkspaceSummary(context.membership.organizationId)} />;
+  const [summary, data] = await Promise.all([hostWorkspaceSummary(context.membership.organizationId), hostSectionData(context.membership.organizationId, section)]);
+  return <HostWorkspace section={section} summary={summary} data={data} actions={<HostSectionActions section={section} organizationId={context.membership.organizationId} />} />;
 }

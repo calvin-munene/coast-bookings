@@ -25,8 +25,18 @@ export async function POST(request: Request) {
       checkOut: result.data.checkOut,
       adults: result.data.adults,
       children: result.data.children,
-      requirements: { notes: result.data.requirements ?? "", budgetMinor: result.data.budgetMinor ?? null },
-      contact: { name: result.data.contactName, email: result.data.email },
+      requirements: {
+        notes: result.data.requirements ?? "",
+        budgetMinor: result.data.budgetMinor ?? null,
+        supervisors: result.data.supervisors,
+        mealPlan: result.data.mealPlan,
+        roomingPreferences: result.data.roomingPreferences ?? "",
+        transportNeeds: result.data.transportNeeds ?? "",
+        conferenceRequirements: result.data.conferenceRequirements ?? "",
+        accessibilityRequirements: result.data.accessibilityRequirements ?? "",
+        dietaryRequirements: result.data.dietaryRequirements ?? "",
+      },
+      contact: { name: result.data.contactName, email: result.data.email, phone: result.data.contactPhone },
     });
   }
   return NextResponse.json({ data: { reference, status: "NEW_ENQUIRY", submittedAt: new Date().toISOString() }, meta: { persisted: isDatabaseConfigured() } }, { status: 201 });

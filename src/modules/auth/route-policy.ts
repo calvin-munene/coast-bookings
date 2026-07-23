@@ -8,13 +8,14 @@ const PUBLIC_EXACT_PATHS = new Set([
   "/forgot-password",
   "/verify-email",
   "/account-restricted",
+  "/manifest.webmanifest",
   "/api/health",
   "/api/search",
   "/api/pricing/quote",
+  "/api/bookings/quote",
   "/api/group-enquiries",
   "/api/webhooks/clerk",
-  "/api/webhooks/daraja",
-  "/api/webhooks/pesapal",
+  "/api/webhooks/whop",
 ]);
 
 const PUBLIC_PREFIXES = [
@@ -24,6 +25,7 @@ const PUBLIC_PREFIXES = [
   "/sign-in",
   "/sign-up",
   "/help",
+  "/group-quotes/",
   "/api/files/public/",
 ] as const;
 

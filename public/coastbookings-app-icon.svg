@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Coast Bookings">
+  <rect width="512" height="512" rx="112" fill="#08233e"/>
+  <path d="M96 304c48-49 99-54 153-15 57 41 109 34 167-21v62c-60 47-120 50-181 7-49-35-94-30-139 17z" fill="#39b6b2"/>
+  <path d="M96 365c50-38 100-40 151-5 57 39 113 36 169-8v62H96z" fill="#f47721"/>
+  <path d="M147 134h218v136h-50v-85H197v85h-50z" fill="#fff"/>
+  <path d="M220 212h72v58h-72z" fill="#fff"/>
+</svg>
